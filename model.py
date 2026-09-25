@@ -282,8 +282,23 @@ def ddpm_p_mean_variance(x_t, t, eps, schedule: dict):
     
     return mean, variance, x0_hat
 
-# Step 17 - ddpm_p_sample (not yet solved)
-# TODO: implement
+# Step 17 - ddpm_p_sample
+import torch
+import torch.nn.functional as F
+
+def ddpm_p_sample(x_t, t, params: dict, schedule: dict, noise=None):
+    eps = tiny_unet_forward(x_t, t, params)
+    mean, var, _ = ddpm_p_mean_variance(x_t, t, eps, schedule)
+    
+    if noise is None:
+        noise = torch.randn_like(x_t)
+    
+    # zero out the stochastic term wherever t == 0 (deterministic final step)
+    t_is_zero = (t == 0).float()
+    mask = (1.0 - t_is_zero).reshape(-1, 1, 1, 1)
+    
+    x_prev = mean + torch.sqrt(var) * noise * mask
+    return x_prev
 
 # Step 18 - ddpm_sample_loop (not yet solved)
 # TODO: implement
