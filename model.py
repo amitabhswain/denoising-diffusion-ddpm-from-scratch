@@ -156,8 +156,34 @@ def tiny_unet_forward(x, t, params: dict):
     # Step 4: final convolution back to in_ch channels (the noise prediction)
     return F.conv2d(h, params['conv_out_w'], params['conv_out_b'], padding=1)
 
-# Step 12 - make_blob_dataset (not yet solved)
-# TODO: implement
+# Step 12 - make_blob_dataset
+import torch
+import torch.nn.functional as F
+
+def make_blob_dataset(n: int = 128, size: int = 8, seed: int = 0):
+    torch.manual_seed(seed)
+    
+    radius = size // 4
+    
+    images = torch.zeros(n, 1, size, size)
+    
+    # coordinate grids for computing distance from a center, reused for every sample
+    yy, xx = torch.meshgrid(
+        torch.arange(size, dtype=torch.float32),
+        torch.arange(size, dtype=torch.float32),
+        indexing='ij'
+    )
+    
+    for i in range(n):
+        center = torch.randint(radius, size - radius, (2,))
+        cy, cx = center[0].float(), center[1].float()
+        
+        dist_sq = (yy - cy) ** 2 + (xx - cx) ** 2
+        disk_mask = dist_sq <= radius ** 2
+        
+        images[i, 0][disk_mask] = 1.0
+    
+    return images
 
 # Step 13 - ddpm_train_step (not yet solved)
 # TODO: implement
