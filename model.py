@@ -246,8 +246,41 @@ def predict_x0_from_eps(x_t, t, eps, alphas_cumprod):
     x0_hat = (x_t - torch.sqrt(1 - alpha_bar_t) * eps) / torch.sqrt(alpha_bar_t)
     return x0_hat
 
-# Step 16 - ddpm_p_mean_variance (not yet solved)
-# TODO: implement
+# Step 16 - ddpm_p_mean_variance
+import torch
+import torch.nn.functional as F
+
+def ddpm_p_mean_variance(x_t, t, eps, schedule: dict):
+    alphas = schedule['alphas']
+    alphas_cumprod = schedule['alphas_cumprod']
+    betas = schedule['betas']
+    
+    # x0 estimate from the predicted noise, clamped for stability
+    x0_hat = predict_x0_from_eps(x_t, t, eps, alphas_cumprod)
+    x0_hat = torch.clamp(x0_hat, -1.0, 1.0)
+    
+    # Build a shifted alphas_cumprod array so index t gives bar_alpha_{t-1},
+    # with bar_alpha_{-1} := 1 for t == 0
+    alphas_cumprod_prev_full = torch.cat(
+        [torch.ones(1, dtype=alphas_cumprod.dtype, device=alphas_cumprod.device),
+         alphas_cumprod[:-1]]
+    )
+    
+    # Per-sample lookups, each broadcastable to x_t's shape (B, C, H, W)
+    alpha_bar_t = extract_into_batch(alphas_cumprod, t, x_t)
+    alpha_bar_prev = extract_into_batch(alphas_cumprod_prev_full, t, x_t)
+    beta_t = extract_into_batch(betas, t, x_t)
+    alpha_t = extract_into_batch(alphas, t, x_t)
+    
+    # Posterior mean, mixing the x0 estimate and the current noisy sample
+    coef_x0 = torch.sqrt(alpha_bar_prev) * beta_t / (1 - alpha_bar_t)
+    coef_xt = torch.sqrt(alpha_t) * (1 - alpha_bar_prev) / (1 - alpha_bar_t)
+    mean = coef_x0 * x0_hat + coef_xt * x_t
+    
+    # Simple fixed-variance choice
+    variance = beta_t
+    
+    return mean, variance, x0_hat
 
 # Step 17 - ddpm_p_sample (not yet solved)
 # TODO: implement
