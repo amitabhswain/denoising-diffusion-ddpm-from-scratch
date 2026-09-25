@@ -300,8 +300,23 @@ def ddpm_p_sample(x_t, t, params: dict, schedule: dict, noise=None):
     x_prev = mean + torch.sqrt(var) * noise * mask
     return x_prev
 
-# Step 18 - ddpm_sample_loop (not yet solved)
-# TODO: implement
+# Step 18 - ddpm_sample_loop
+import torch
+import torch.nn.functional as F
+
+def ddpm_sample_loop(params: dict, schedule: dict, shape: tuple, seed: int = 0):
+    torch.manual_seed(seed)
+    
+    x = torch.randn(shape)
+    
+    B = shape[0]
+    T = schedule['T']
+    
+    for t in range(T - 1, -1, -1):
+        t_batch = torch.full((B,), t, dtype=torch.long)
+        x = ddpm_p_sample(x, t_batch, params, schedule)
+    
+    return x
 
 # Step 19 - sample_quality_mse (not yet solved)
 # TODO: implement
