@@ -136,8 +136,25 @@ def init_tiny_unet(in_ch: int = 1, hidden: int = 16, time_dim: int = 16, seed: i
     
     return params
 
-# Step 11 - tiny_unet_forward (not yet solved)
-# TODO: implement
+# Step 11 - tiny_unet_forward
+import torch
+import torch.nn.functional as F
+
+def tiny_unet_forward(x, t, params: dict):
+    # Step 1: first convolution
+    h = F.conv2d(x, params['conv_in_w'], params['conv_in_b'], padding=1)
+    
+    # Step 2: timestep embedding, projected and added as a per-channel bias
+    temb = timestep_embedding(t, params['time_mlp_w'].shape[1])
+    temb = F.relu(F.linear(temb, params['time_mlp_w'], params['time_mlp_b']))
+    h = h + temb[:, :, None, None]
+    
+    # Step 3: nonlinearity, then a second convolution
+    h = F.relu(h)
+    h = F.relu(F.conv2d(h, params['conv_mid_w'], params['conv_mid_b'], padding=1))
+    
+    # Step 4: final convolution back to in_ch channels (the noise prediction)
+    return F.conv2d(h, params['conv_out_w'], params['conv_out_b'], padding=1)
 
 # Step 12 - make_blob_dataset (not yet solved)
 # TODO: implement
