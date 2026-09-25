@@ -99,8 +99,42 @@ def timestep_embedding(t, dim: int):
     emb = torch.cat([torch.sin(args), torch.cos(args)], dim=-1)
     return emb
 
-# Step 10 - init_tiny_unet (not yet solved)
-# TODO: implement
+# Step 10 - init_tiny_unet
+import torch
+import torch.nn.functional as F
+
+def init_tiny_unet(in_ch: int = 1, hidden: int = 16, time_dim: int = 16, seed: int = 0) -> dict:
+    torch.manual_seed(seed)
+    
+    std = 0.02
+    
+    conv_in_w = torch.randn(hidden, in_ch, 3, 3) * std
+    conv_in_b = torch.zeros(hidden)
+    
+    time_mlp_w = torch.randn(hidden, time_dim) * std
+    time_mlp_b = torch.zeros(hidden)
+    
+    conv_mid_w = torch.randn(hidden, hidden, 3, 3) * std
+    conv_mid_b = torch.zeros(hidden)
+    
+    conv_out_w = torch.randn(in_ch, hidden, 3, 3) * std
+    conv_out_b = torch.zeros(in_ch)
+    
+    params = {
+        'conv_in_w': conv_in_w,
+        'conv_in_b': conv_in_b,
+        'time_mlp_w': time_mlp_w,
+        'time_mlp_b': time_mlp_b,
+        'conv_mid_w': conv_mid_w,
+        'conv_mid_b': conv_mid_b,
+        'conv_out_w': conv_out_w,
+        'conv_out_b': conv_out_b,
+    }
+    
+    for p in params.values():
+        p.requires_grad_(True)
+    
+    return params
 
 # Step 11 - tiny_unet_forward (not yet solved)
 # TODO: implement
