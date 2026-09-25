@@ -318,8 +318,30 @@ def ddpm_sample_loop(params: dict, schedule: dict, shape: tuple, seed: int = 0):
     
     return x
 
-# Step 19 - sample_quality_mse (not yet solved)
-# TODO: implement
+# Step 19 - sample_quality_mse
+import torch
+import torch.nn.functional as F
+
+def sample_quality_mse(samples, dataset) -> float:
+    N = samples.shape[0]
+    M = dataset.shape[0]
+    
+    samples_flat = samples.reshape(N, -1)
+    dataset_flat = dataset.reshape(M, -1)
+    
+    samples_sq = (samples_flat ** 2).sum(dim=1, keepdim=True)
+    dataset_sq = (dataset_flat ** 2).sum(dim=1, keepdim=True).T
+    cross_term = samples_flat @ dataset_flat.T
+    
+    sq_dists = samples_sq - 2 * cross_term + dataset_sq
+    sq_dists = torch.clamp(sq_dists, min=0.0)   # guard against tiny negative rounding error
+    
+    D = samples_flat.shape[1]
+    mse = sq_dists / D
+    
+    min_mse_per_sample = mse.min(dim=1).values
+    
+    return float(min_mse_per_sample.mean())
 
 # Step 20 - ddpm_experiment (not yet solved)
 # TODO: implement
